@@ -7,7 +7,7 @@ function createApiRoutes(pool, io) {
   const router = express.Router();
 
 router.get('/duel/:id', requireAuth, async (req, res) => {
-  let connection;
+  let connection = null;
   try {
     console.log(`🎮 Duel page accessed: ${req.params.id} by ${req.session.user.username}`);
 
@@ -160,7 +160,7 @@ router.get('/duel/:id/status', requireAuth, async (req, res) => {
 });
 
 router.post('/duel/:id/guess', requireAuth, async (req, res) => {
-  let connection;
+  let connection = null;
   try {
     const { guessLat, guessLng } = req.body;
 
@@ -256,7 +256,7 @@ router.post('/duel/:id/guess', requireAuth, async (req, res) => {
 
 // 添加新的路由来记录地图点击（不提交猜测）
 router.post('/duel/:id/click', requireAuth, async (req, res) => {
-  let connection;
+  let connection = null;
   try {
     const { clickLat, clickLng } = req.body;
 
@@ -321,7 +321,7 @@ router.get('/leaderboard', async (req, res) => {
   if (!req.session.user) {
     res.redirect('/auth');
   } else {
-    let connection;
+    let connection = null;
     try {
       const page = parseInt(req.query.page) || 1;
       const limit = 50;
@@ -415,7 +415,7 @@ router.get('/user/:uid', async (req, res) => {
   if (!req.session.user) {
     res.redirect('/auth');
   } else {
-    let connection;
+    let connection = null;
     try {
       const uid = parseInt(req.params.uid);
       if (isNaN(uid)) {
@@ -507,7 +507,7 @@ router.get('/user/:uid', async (req, res) => {
 
 // Rating History API
 router.get('/api/user/:uid/rating-history', async (req, res) => {
-  let connection;
+  let connection = null;
   try {
     const uid = parseInt(req.params.uid);
     const period = req.query.period || 'all';
@@ -595,7 +595,7 @@ router.get('/api/user/:uid/rating-history', async (req, res) => {
 });
 
 router.post('/user/edit-bio', requireAuth, async (req, res) => {
-  let connection;
+  let connection = null;
   try {
     const { bio } = req.body;
 
@@ -639,7 +639,7 @@ router.get('/user/:uid/duels', async (req, res) => {
   if (!req.session.user) {
     res.redirect('/auth');
   } else {
-    let connection;
+    let connection = null;
     try {
       const uid = parseInt(req.params.uid);
       const page = parseInt(req.query.page) || 1;

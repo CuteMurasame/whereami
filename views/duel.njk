@@ -825,6 +825,9 @@
         const gameStartAt = {% if duel.gameStartAt %}'{{ duel.gameStartAt }}'{% else %}null{% endif %};
         const locations = {{ duel.locations | dump | safe }};
         const googleMapsApiKey = '{{ googleMapsApiKey }}';
+        
+        // Auto-reload timing configuration
+        const AUTO_RELOAD_DELAY = 2000; // 2 seconds after countdown ends
 
         // 结果数据
         const resultsData = {
@@ -1670,7 +1673,7 @@
                     setTimeout(() => {
                         console.log('⏰ Auto-reloading page after results countdown');
                         location.reload();
-                    }, 2000); // 2 second buffer after countdown ends
+                    }, AUTO_RELOAD_DELAY);
                 }
             }, 100);
         }
