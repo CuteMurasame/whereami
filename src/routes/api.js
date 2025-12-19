@@ -7,10 +7,11 @@ function createApiRoutes(pool, io) {
   const router = express.Router();
 
 router.get('/duel/:id', requireAuth, async (req, res) => {
+  let connection;
   try {
     console.log(`🎮 Duel page accessed: ${req.params.id} by ${req.session.user.username}`);
 
-    const connection = await pool.getConnection();
+    connection = await pool.getConnection();
 
     // Remove user from matchmaking queue
     await connection.execute(
@@ -136,6 +137,8 @@ router.get('/duel/:id', requireAuth, async (req, res) => {
   } catch (error) {
     console.error('❌ Duel page error:', error);
     res.redirect('/lobby');
+  } finally {
+    if (connection) connection.release();
   }
 });
 router.get('/duel/:id/status', requireAuth, async (req, res) => {
@@ -157,6 +160,7 @@ router.get('/duel/:id/status', requireAuth, async (req, res) => {
 });
 
 router.post('/duel/:id/guess', requireAuth, async (req, res) => {
+  let connection;
   try {
     const { guessLat, guessLng } = req.body;
 
@@ -167,7 +171,7 @@ router.post('/duel/:id/guess', requireAuth, async (req, res) => {
       return res.status(400).json({ error: 'Invalid guess coordinates' });
     }
 
-    const connection = await pool.getConnection();
+    connection = await pool.getConnection();
     await connection.beginTransaction();
 
     const [rows] = await connection.execute(
@@ -237,12 +241,22 @@ router.post('/duel/:id/guess', requireAuth, async (req, res) => {
     res.json({ success: true });
   } catch (error) {
     console.error('❌ Guess error:', error);
+    if (connection) {
+      try {
+        await connection.rollback();
+      } catch (rollbackError) {
+        console.error('❌ Rollback error:', rollbackError);
+      }
+    }
     res.status(500).json({ error: 'Failed to make guess' });
+  } finally {
+    if (connection) connection.release();
   }
 });
 
 // 添加新的路由来记录地图点击（不提交猜测）
 router.post('/duel/:id/click', requireAuth, async (req, res) => {
+  let connection;
   try {
     const { clickLat, clickLng } = req.body;
 
@@ -252,7 +266,7 @@ router.post('/duel/:id/click', requireAuth, async (req, res) => {
       return res.status(400).json({ error: 'Invalid click coordinates' });
     }
 
-    const connection = await pool.getConnection();
+    connection = await pool.getConnection();
 
     const [rows] = await connection.execute(
       'SELECT * FROM duels WHERE id = ? AND (player1_uid = ? OR player2_uid = ?) AND status = "playing"',
@@ -292,6 +306,8 @@ router.post('/duel/:id/click', requireAuth, async (req, res) => {
   } catch (error) {
     console.error('❌ Click recording error:', error);
     res.status(500).json({ error: 'Failed to record click' });
+  } finally {
+    if (connection) connection.release();
   }
 });
 
@@ -305,6 +321,7 @@ router.get('/leaderboard', async (req, res) => {
   if (!req.session.user) {
     res.redirect('/auth');
   } else {
+    let connection;
     try {
       const page = parseInt(req.query.page) || 1;
       const limit = 50;
@@ -312,7 +329,7 @@ router.get('/leaderboard', async (req, res) => {
       
       console.log(`🏆 Leaderboard accessed by ${req.session.user?.username || 'Anonymous'}, page ${page}`);
       
-      const connection = await pool.getConnection();
+      connection = await pool.getConnection();
       
       // Get total count
       const [countRows] = await connection.execute(
@@ -387,6 +404,8 @@ router.get('/leaderboard', async (req, res) => {
         user: req.session.user,
         title: 'Error - Whereami'
       });
+    } finally {
+      if (connection) connection.release();
     }
   }
 });
@@ -396,6 +415,7 @@ router.get('/user/:uid', async (req, res) => {
   if (!req.session.user) {
     res.redirect('/auth');
   } else {
+    let connection;
     try {
       const uid = parseInt(req.params.uid);
       if (isNaN(uid)) {
@@ -406,7 +426,7 @@ router.get('/user/:uid', async (req, res) => {
         });
       }
       
-      const connection = await pool.getConnection();
+      connection = await pool.getConnection();
       
       const [userRows] = await connection.execute(
         'SELECT * FROM users WHERE uid = ?',
@@ -479,12 +499,15 @@ router.get('/user/:uid', async (req, res) => {
         user: req.session.user,
         title: 'Error - Whereami'
       });
+    } finally {
+      if (connection) connection.release();
     }
   }
 });
 
 // Rating History API
 router.get('/api/user/:uid/rating-history', async (req, res) => {
+  let connection;
   try {
     const uid = parseInt(req.params.uid);
     const period = req.query.period || 'all';
@@ -495,7 +518,7 @@ router.get('/api/user/:uid/rating-history', async (req, res) => {
     
     console.log(`📊 Fetching rating history for user ${uid}, period: ${period}`);
     
-    const connection = await pool.getConnection();
+    connection = await pool.getConnection();
     
     // Build query based on period
     let timeFilter = '';
@@ -566,10 +589,13 @@ router.get('/api/user/:uid/rating-history', async (req, res) => {
       success: false, 
       error: 'Failed to fetch rating history' 
     });
+  } finally {
+    if (connection) connection.release();
   }
 });
 
 router.post('/user/edit-bio', requireAuth, async (req, res) => {
+  let connection;
   try {
     const { bio } = req.body;
 
@@ -585,7 +611,7 @@ router.post('/user/edit-bio', requireAuth, async (req, res) => {
     }
 
     // Update bio in database
-    const connection = await pool.getConnection();
+    connection = await pool.getConnection();
     await connection.execute(
       'UPDATE users SET profile_bio = ? WHERE uid = ?',
       [trimmedBio || null, req.session.user.uid]
@@ -603,6 +629,8 @@ router.post('/user/edit-bio', requireAuth, async (req, res) => {
       success: false,
       message: 'Failed to update bio. Please try again.'
     });
+  } finally {
+    if (connection) connection.release();
   }
 });
 
@@ -611,6 +639,7 @@ router.get('/user/:uid/duels', async (req, res) => {
   if (!req.session.user) {
     res.redirect('/auth');
   } else {
+    let connection;
     try {
       const uid = parseInt(req.params.uid);
       const page = parseInt(req.query.page) || 1;
@@ -621,7 +650,7 @@ router.get('/user/:uid/duels', async (req, res) => {
         return res.status(404).send('Invalid user ID');
       }
 
-      const connection = await pool.getConnection();
+      connection = await pool.getConnection();
 
       // Get user info
       const [userRows] = await connection.execute(
@@ -686,6 +715,8 @@ router.get('/user/:uid/duels', async (req, res) => {
     } catch (error) {
       console.error('❌ User duels history error:', error);
       res.status(500).send('Failed to load duel history');
+    } finally {
+      if (connection) connection.release();
     }
   }
 });
