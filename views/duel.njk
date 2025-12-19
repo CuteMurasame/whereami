@@ -1664,6 +1664,13 @@
                 if (remaining <= 0) {
                     clearInterval(timers.resultsCountdown);
                     console.log('📊 结果倒计时结束');
+                    
+                    // Add fallback: Auto-reload after countdown ends
+                    // This ensures page refreshes even if socket event is missed
+                    setTimeout(() => {
+                        console.log('⏰ Auto-reloading page after results countdown');
+                        location.reload();
+                    }, 2000); // 2 second buffer after countdown ends
                 }
             }, 100);
         }
