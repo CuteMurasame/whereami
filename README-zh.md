@@ -14,7 +14,7 @@
 
 ## 支持
 
-请在 <https://sponsor.murasame-chan.me/> 支持我们的开发。
+请在 <https://afdian.com/a/Murasame-chan> 支持我们的开发。
 
 ## 核心功能
 
