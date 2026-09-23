@@ -14,7 +14,7 @@ This project is built with Node.js, Express, and Socket.IO to create a fast-pace
 
 ## Support
 
-Support us on https://sponsor.murasame-chan.me/.
+Support us on https://afdian.com/a/Murasame-chan.
 
 ## Core Features
 
